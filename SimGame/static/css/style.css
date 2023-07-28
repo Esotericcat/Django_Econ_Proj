@@ -1,0 +1,21 @@
+ul.link-bar {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+}
+
+ul.link-bar li {
+    padding: 10px;
+}
+
+ul.link-bar li a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+}
+
+ul.link-bar li a:hover {
+    color: #ff0000; }
