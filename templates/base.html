@@ -10,12 +10,14 @@
 </head>
 <body>
 
+
 {% block content %}
+    {% include 'user_panel.html' %}
     <ul class="link-bar">
         <!-- Add your links here -->
         <li><a href="#">Home</a></li>
         <li><a href="#">About</a></li>
-        <li><a href="{% url 'login' %}">Login</a></li>
+        <li><a href="{% url 'register' %}">Zarejestruj się</a></li>
         <li><a href="#">Contact</a></li>
     </ul>
 {% endblock %}
