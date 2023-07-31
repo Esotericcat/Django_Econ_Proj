@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>Balance</h1>
+    <p>Balance</p>
+    <h1>Player List</h1>
+    <ul>
+        {% for player in players_data %}
+        <li>
+            <strong>Name:</strong> {{ player.name }}<br>
+            <strong>Balance:</strong> {{ player.balance }}
+        </li>
+        {% endfor %}
+    </ul>
+
+
+{% endblock %}

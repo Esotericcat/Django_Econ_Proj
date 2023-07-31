@@ -67,4 +67,8 @@ class PlayerDetail(View):
         return render(request, 'player_detail.html')
 
 
-
+class PlayerList(View):
+    def get(self, request):
+        user_balances = UserBalance.objects.all()
+        players_data = [{'name': balance.user.name, 'balance': balance.balance} for balance in user_balances]
+        return render(request, 'player_list.html', {'players_data': players_data})
