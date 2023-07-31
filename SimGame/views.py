@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect
 from django.views import View
 
 from SimGame.forms import LoginForm, RegisterForm
-from SimGame.models import User
+from SimGame.models import User, UserBalance
 
 
 class LoginView(View):
@@ -51,6 +51,14 @@ class Home(View):
 class PlayerCreate(View):
     def get(self, request):
         return render(request, 'player_create.html')
+    def post(self, request):
+        name = request.POST.get('name')
+        balance = request.POST.get('balance')
+        user = User.objects.create(name=name)
+        user_balance = UserBalance.objects.create(user=user, balance=balance)
+
+        return redirect('home')
+
 
 
 class PlayerDetail(View):
