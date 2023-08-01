@@ -1,21 +1,52 @@
 {% extends 'base.html' %}
+
 {% block content %}
-   <h1>{{ seller.name }} Details</h1>
-    <table>
+    <style>
+    .seller-details-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .seller-details-table th,
+    .seller-details-table td {
+        padding: 10px;
+        border: 1px solid #ccc;
+    }
+
+    .seller-details-table th {
+        background-color: #f0f0f0;
+    }
+
+    .seller-details-table td {
+        text-align: center;
+    }
+
+    a {
+        display: block;
+        margin-top: 10px;
+    }
+</style>
+    <h1>{{ seller.name }} Details</h1>
+    <table class="seller-details-table">
         <thead>
             <tr>
                 <th>Goods</th>
                 <th>Quantity</th>
+                <th>Price</th>
+                <th>Total Price</th>
             </tr>
         </thead>
         <tbody>
-            {% for sellergoods in seller.sellergoods_set.all %}
+            {% for sellergood in sellergoods %}
             <tr>
-                <td>{{ sellergoods.goods.name }}</td>
-                <td>{{ sellergoods.quantity }}</td>
+                <td>{{ sellergood.goods.name }}</td>
+                <td>{{ sellergood.quantity }}</td>
+                <td>${{ sellergood.goods.price }}</td>
+                <td>${{ sellergood.total_price }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     <a href="{% url 'vendor_list' %}">Back to Vendor List</a>
 {% endblock content %}
+

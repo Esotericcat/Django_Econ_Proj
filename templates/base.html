@@ -11,7 +11,7 @@
 <body>
 
 
-{% block content %}
+
     {% include 'user_panel.html' %}
     <ul class="link-bar">
         <!-- Add your links here -->
@@ -22,6 +22,8 @@
         <li> <a href="{% url  'player_list'%}"> Lista Graczy"</a></li>
         <li><a href="{% url 'vendor_list' %}">Vendors</a></li>
     </ul>
+    {% include 'player_stats.html' %}
+    {% block content %}
 {% endblock %}
 </body>
 </html>

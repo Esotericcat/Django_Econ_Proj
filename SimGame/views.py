@@ -1,9 +1,12 @@
 from django.contrib.auth import authenticate, login, logout
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 
 from SimGame.forms import LoginForm, RegisterForm
 from SimGame.models import User, UserBalance, SellerGoods, Seller
+
 
 
 class LoginView(View):
@@ -38,6 +41,8 @@ class RegisterView(View):
             user = form.save(commit = False)
             user.set_password(form.cleaned_data['password1'])
             user.save()
+
+
             return redirect('login')
         return render(request, 'form.html', {'form': form})
 
@@ -46,6 +51,10 @@ class RegisterView(View):
 class Home(View):
     def get(self, request):
         return render(request, 'home.html')
+
+
+
+
 
 
 class PlayerCreate(View):
@@ -82,5 +91,19 @@ class VendorList(View):
 class SellerDetail(View):
     def get(self, request, pk):
         seller = get_object_or_404(Seller, pk=pk)
-        sellergoods = SellerGoods.objects.filter(seller=seller)
+        sellergoods = SellerGoods.objects.filter(seller=seller).select_related('goods')
+
+        for sellergood in sellergoods:
+            sellergood.total_price = sellergood.quantity * sellergood.goods.price
+
         return render(request, 'seller_detail.html', {'seller': seller, 'sellergoods': sellergoods})
+
+
+
+class PlayerStats(View):
+    def get(self, request):
+
+        user_balance = UserBalance.objects.first()
+        user = {'name': user_balance.user.name, 'balance': user_balance.balance}
+        return render(request, 'player_stats.html', {'user': user})
+
