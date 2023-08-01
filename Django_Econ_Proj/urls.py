@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from SimGame import views
+from SimGame.views import SellerDetail
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,5 +26,8 @@ urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='register'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('create_player/', views.PlayerCreate.as_view(), name='create_player'),
-    path('player_list/', views.PlayerList.as_view(), name='player_list')
+    path('player_list/', views.PlayerList.as_view(), name='player_list'),
+    path('vendor_list/', views.VendorList.as_view(), name='vendor_list'),
+    path('seller/<int:pk>/', SellerDetail.as_view(), name='seller_detail'),
+
 ]

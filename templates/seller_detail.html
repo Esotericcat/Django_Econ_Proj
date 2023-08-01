@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+   <h1>{{ seller.name }} Details</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Goods</th>
+                <th>Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sellergoods in seller.sellergoods_set.all %}
+            <tr>
+                <td>{{ sellergoods.goods.name }}</td>
+                <td>{{ sellergoods.quantity }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'vendor_list' %}">Back to Vendor List</a>
+{% endblock content %}

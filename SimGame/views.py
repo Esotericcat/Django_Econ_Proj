@@ -1,9 +1,9 @@
 from django.contrib.auth import authenticate, login, logout
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 
 from SimGame.forms import LoginForm, RegisterForm
-from SimGame.models import User, UserBalance
+from SimGame.models import User, UserBalance, SellerGoods, Seller
 
 
 class LoginView(View):
@@ -72,3 +72,15 @@ class PlayerList(View):
         user_balances = UserBalance.objects.all()
         players_data = [{'name': balance.user.name, 'balance': balance.balance} for balance in user_balances]
         return render(request, 'player_list.html', {'players_data': players_data})
+
+class VendorList(View):
+    def get(self, request):
+        sellers = Seller.objects.all()
+        return render(request, 'vendor_list.html', {'sellers': sellers})
+
+
+class SellerDetail(View):
+    def get(self, request, pk):
+        seller = get_object_or_404(Seller, pk=pk)
+        sellergoods = SellerGoods.objects.filter(seller=seller)
+        return render(request, 'seller_detail.html', {'seller': seller, 'sellergoods': sellergoods})
