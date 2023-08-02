@@ -23,3 +23,7 @@ class RegisterForm(forms.ModelForm):
         if cleaned_data.get('password1') != cleaned_data.get('password2'):
             raise ValidationError('hasła nie są takie same')
         return cleaned_data
+
+
+class ChooseUserForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=User.objects.all())

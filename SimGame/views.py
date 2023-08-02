@@ -4,8 +4,8 @@ from django.dispatch import receiver
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 
-from SimGame.forms import LoginForm, RegisterForm
-from SimGame.models import User, UserBalance, SellerGoods, Seller
+from SimGame.forms import LoginForm, RegisterForm, ChooseUserForm
+from SimGame.models import User, Balance, SellerGoods, Seller
 
 
 
@@ -13,15 +13,21 @@ class LoginView(View):
     def get(self, request):
 
         return render(request, 'login.html')
-    def post(self, request):
-        username = request.POST.get('username')  # pobranie danych z formularza
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            redirect_url = request.GET.get('next', 'home')
-            return redirect(redirect_url)
-        return render(request, 'login.html', {'error': 'Zły login lub hasło'})
+
+    class LoginView(View):
+        def get(self, request):
+            return render(request, 'login.html')
+
+        def post(self, request):
+            username = request.POST.get('username')  # pobranie danych z formularza
+            password = request.POST.get('password')
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                redirect_url = request.GET.get('next', 'home')
+                return redirect(redirect_url)
+            return render(request, 'login.html', {'error': 'Zły login lub hasło'})
+
 
 class LogoutView(View):
 
@@ -41,6 +47,8 @@ class RegisterView(View):
             user = form.save(commit = False)
             user.set_password(form.cleaned_data['password1'])
             user.save()
+            User.objects.create(name=user.username)
+            Balance.objects.create(user=user, balance=0.00)
 
 
             return redirect('login')
@@ -64,7 +72,7 @@ class PlayerCreate(View):
         name = request.POST.get('name')
         balance = request.POST.get('balance')
         user = User.objects.create(name=name)
-        user_balance = UserBalance.objects.create(user=user, balance=balance)
+        user_balance = Balance.objects.create(user=user, balance=balance)
 
         return redirect('home')
 
@@ -78,8 +86,8 @@ class PlayerDetail(View):
 
 class PlayerList(View):
     def get(self, request):
-        user_balances = UserBalance.objects.all()
-        players_data = [{'name': balance.user.name, 'balance': balance.balance} for balance in user_balances]
+        user_balances = Balance.objects.all()
+        players_data = [{'name': balance.user.name, 'balance': balance.amount} for balance in user_balances]
         return render(request, 'player_list.html', {'players_data': players_data})
 
 class VendorList(View):
@@ -103,7 +111,6 @@ class SellerDetail(View):
 class PlayerStats(View):
     def get(self, request):
 
-        user_balance = UserBalance.objects.first()
-        user = {'name': user_balance.user.name, 'balance': user_balance.balance}
+        user_balance = Balance.objects.first()
+        user = {'name': user_balance.user.name, 'balance': user_balance.amount}
         return render(request, 'player_stats.html', {'user': user})
-
