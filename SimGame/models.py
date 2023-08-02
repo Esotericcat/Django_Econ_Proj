@@ -1,12 +1,22 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class Balance(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    def __str__(self):
-        return self.user.name
+
+
+@receiver(post_save, sender=User)
+def create_user_balance(sender, instance, created, **kwargs):
+    if created:
+        Balance.objects.create(user=instance, amount=0.00)
+
+@receiver(post_save, sender=User)
+def save_user_balance(sender, instance, **kwargs):
+    instance.balance.save()
 
 
 class Goods(models.Model):
