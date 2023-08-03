@@ -30,16 +30,12 @@ class Goods(models.Model):
 
 class Seller(models.Model):
     name = models.CharField(max_length=64)
-    def __str__(self):
-        return self.name
-
 
 class SellerGoods(models.Model):
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
     goods = models.ForeignKey(Goods, on_delete=models.CASCADE)
     quantity = models.IntegerField()
-    def __str__(self):
-        return self.goods.name
+
 
 class Transaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -49,6 +45,14 @@ class Transaction(models.Model):
     type = models.CharField(max_length=64)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateTimeField(auto_now_add=True)
+
+class Inventory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    goods = models.ForeignKey(Goods, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.user.username}'s {self.goods.name} - Quantity: {self.quantity}"
 
 
 

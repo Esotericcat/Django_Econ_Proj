@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <style>
+<style>
     .seller-details-table {
         width: 100%;
         border-collapse: collapse;
@@ -26,27 +26,43 @@
         margin-top: 10px;
     }
 </style>
-    <h1>{{ seller.name }} Details</h1>
-    <table class="seller-details-table">
-        <thead>
-            <tr>
-                <th>Goods</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total Price</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for sellergood in sellergoods %}
-            <tr>
-                <td>{{ sellergood.goods.name }}</td>
-                <td>{{ sellergood.quantity }}</td>
-                <td>${{ sellergood.goods.price }}</td>
-                <td>${{ sellergood.total_price }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <a href="{% url 'vendor_list' %}">Back to Vendor List</a>
-{% endblock content %}
 
+<h1>{{ seller.name }} Details</h1>
+<table class="seller-details-table">
+    <thead>
+        <tr>
+            <th>Goods</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Total Price</th>
+            <th>Actions</th> <!-- New column for the buttons/forms -->
+        </tr>
+    </thead>
+    <tbody>
+        {% for sellergood in sellergoods %}
+        <tr>
+            <td>{{ sellergood.goods.name }}</td>
+            <td>{{ sellergood.quantity }}</td>
+            <td>${{ sellergood.goods.price }}</td>
+            <td>${{ sellergood.total_price }}</td>
+            <td>
+
+                <!-- Sell form with POST method -->
+                <form action="{% url 'sell_good' sellergood.id %}" method="post">
+                    {% csrf_token %}
+                    <input type="submit" value="Sell">
+                </form>
+
+                <!-- Buy form with POST method -->
+                <form action="{% url 'buy_good' sellergood.id %}" method="post">
+                    {% csrf_token %}
+                    <input type="submit" value="Buy">
+                </form>
+
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'vendor_list' %}">Back to Vendor List</a>
+{% endblock content %}

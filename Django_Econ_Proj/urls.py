@@ -29,5 +29,8 @@ urlpatterns = [
     path('player_list/', views.PlayerList.as_view(), name='player_list'),
     path('vendor_list/', views.VendorList.as_view(), name='vendor_list'),
     path('seller/<int:pk>/', SellerDetail.as_view(), name='seller_detail'),
+    path('buy/<int:sellergood_id>/', views.BuyGood.as_view(), name='buy_good'),
+    path('sell/<int:sellergood_id>/', views.SellGood.as_view(), name='sell_good'),
+
 
 ]
