@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{{ user.username }}'s Inventory</h1>
+    <table class="inventory-table">
+        <thead>
+            <tr>
+                <th>Goods</th>
+                <th>Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventory %}
+            <tr>
+                <td>{{ item.goods.name }}</td>
+                <td>{{ item.quantity }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'vendor_list' %}">Back to Vendor List</a>
+{% endblock content %}

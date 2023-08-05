@@ -1,11 +1,18 @@
+
+
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import User
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views import View
-
+from decimal import Decimal
+from django.shortcuts import render
+import random
+import matplotlib.pyplot as plt
+import base64
+from io import BytesIO
 from SimGame.forms import LoginForm, RegisterForm, ChooseUserForm
 from SimGame.models import Balance, SellerGoods, Seller, Transaction, Inventory
 
@@ -56,27 +63,11 @@ class Home(View):
 
 
 
-
-
-
-class PlayerCreate(View):
-    def get(self, request):
-        return render(request, 'player_create.html')
-    def post(self, request):
-        name = request.POST.get('name')
-        balance = request.POST.get('balance')
-        user = User.objects.create(name=name)
-        user_balance = Balance.objects.create(user=user, balance=balance)
-
-        return redirect('home')
-
-
-
 class PlayerDetail(View):
-    def get(self, request, pk):
-        user =  User.objects.all()
-        return render(request, 'player_detail.html')
-
+    def get(self, request):
+        # Get the inventory for the currently logged-in user
+        inventory = Inventory.objects.filter(user=request.user).select_related('goods')
+        return render(request, 'player_detail.html', {'inventory': inventory})
 
 class PlayerList(View):
     def get(self, request):
@@ -96,6 +87,7 @@ class SellerDetail(View):
 
         for sellergood in sellergoods:
             sellergood.total_price = sellergood.quantity * sellergood.goods.price
+
 
         return render(request, 'seller_detail.html', {'seller': seller, 'sellergoods': sellergoods})
 
@@ -131,13 +123,13 @@ class BuyGood(View):
                 price=total_price
             )
 
-            # Create or update the Inventory for the user
-            inventory_item, created = Inventory.objects.get_or_create(
-                user=request.user,
-                goods=sellergood.goods,
-            )
-            inventory_item.quantity += 1
-            inventory_item.save()
+            # Increase the price by a certain percentage
+            percentage_increase = Decimal('0.05')  # For example, 5% increase
+            new_price = total_price + (total_price * percentage_increase)
+
+            # Update the price of the Goods object
+            sellergood.goods.price = new_price
+            sellergood.goods.save()
 
             # Decrease the quantity of the SellerGood by one
             sellergood.quantity -= 1
@@ -154,6 +146,7 @@ class SellGood(View):
     def post(self, request, sellergood_id):
         sellergood = get_object_or_404(SellerGoods, id=sellergood_id)
         buyer_balance = Balance.objects.get(user=request.user)
+        invetory = Inventory.objects.get(user=request.user, goods=sellergood.goods)
         if sellergood.quantity > 0:
             # Calculate the total price of one item
             total_price = sellergood.goods.price
@@ -187,8 +180,61 @@ class SellGood(View):
             # If the quantity is zero, remove the SellerGood from the seller's list
             if sellergood.quantity == 0:
                 sellergood.delete()
+            elif inventory_item.quantity < 0:
+                return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
+
 
             return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
 
 
         return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
+
+
+
+
+def simulation_view(request):
+    initial_supply = 100
+    initial_demand = 80
+    price = 10
+    time_steps = 100
+
+    supply_data = [initial_supply]
+    demand_data = [initial_demand]
+    price_data = [price]
+
+    for _ in range(time_steps):
+        supply_change = random.randint(-5, 5)
+        user_interaction = random.randint(-10, 10)  # Update based on user actions
+        demand_change = user_interaction
+
+        new_supply = max(supply_data[-1] + supply_change, 0)
+        new_demand = max(demand_data[-1] + demand_change, 0)
+
+        supply_data.append(new_supply)
+        demand_data.append(new_demand)
+
+        price += (new_demand - new_supply) * 0.1
+        price = max(price, 0)
+        price_data.append(price)
+
+    # Plot the simulation results
+    plt.figure(figsize=(10, 6))
+    plt.plot(supply_data, label='Supply')
+    plt.plot(demand_data, label='Demand')
+    plt.plot(price_data, label='Price')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    plt.title('Supply and Demand Simulation with User Interactions')
+    plt.legend()
+
+    # Save the plot to a BytesIO object
+    from io import BytesIO
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    plt.close()
+
+    # Return the plot image to the template
+    buffer.seek(0)
+    plot_image_base64 = base64.b64encode(buffer.read()).decode()
+    return render(request, 'simulation.html', {'plot_image_base64': plot_image_base64})
+
