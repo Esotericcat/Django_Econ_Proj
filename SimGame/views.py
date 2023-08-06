@@ -1,6 +1,7 @@
 import decimal
 
 from django.contrib.auth import authenticate, login, logout
+from django.db.models import Sum
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -17,19 +18,48 @@ from SimGame.forms import LoginForm, RegisterForm, ChooseUserForm
 from SimGame.models import Balance, SellerGoods, Seller, Transaction, Inventory, Goods
 
 
+
+def calculate_demand(good):
+    # Calculate total quantity bought and sold for the good
+    total_quantity_sold = Transaction.objects.filter(goods=good, type='sell').aggregate(Sum('quantity'))['quantity__sum'] or 0
+    total_quantity_bought = Transaction.objects.filter(goods=good, type='buy').aggregate(Sum('quantity'))['quantity__sum'] or 0
+
+    # Calculate demand based on total quantities
+    demand = total_quantity_bought - total_quantity_sold
+    return demand
+
 def generate_simulation_graph(good_id):
     transactions = Transaction.objects.filter(goods_id=good_id).order_by('date')
 
     price_data = [transaction.price for transaction in transactions]
+    demand_data = []
 
+    # Calculate demand every 25 transactions
+    for i in range(0, len(transactions), 25):
+        subset_transactions = transactions[:i + 1]  # Include transactions up to index i
 
-    plt.figure(figsize=(8, 4))
+        demand = calculate_demand(transactions[i].goods)
+        demand_data.append(demand)
+
+    plt.figure(figsize=(12, 6))
+
+    # Plot Price Graph
+    plt.subplot(2, 1, 1)
     plt.plot(price_data, label='Price')
     plt.xlabel('Number of Transactions')
     plt.ylabel('Price')
     plt.title(f'Price Simulation Over Time for Good {good_id}')
     plt.legend()
 
+    # Plot Demand Graph
+    plt.subplot(2, 1, 2)
+    plt.plot(demand_data, label='Demand', color='orange')
+    plt.xlabel('Number of Transactions')
+    plt.ylabel('Demand')
+    plt.title(f'Demand Simulation Over Time for Good {good_id}')
+    plt.legend()
+
+    plt.tight_layout()
 
     buffer = BytesIO()
     plt.savefig(buffer, format='png')
@@ -151,19 +181,19 @@ class BuyGood(View):
         sellergood = get_object_or_404(SellerGoods, id=sellergood_id)
         buyer_balance = Balance.objects.get(user=request.user)
         if buyer_balance.amount >= sellergood.goods.price and sellergood.quantity > 0:
-            # Calculate the total price of one item
+
             total_price = sellergood.goods.price
 
-            # Deduct the purchase price from the buyer's balance
+
             buyer_balance.amount -= total_price
             buyer_balance.save()
 
-            # Record the transaction
+
             transaction = Transaction.objects.create(
                 user=request.user,
                 seller=sellergood.seller,
                 goods=sellergood.goods,
-                quantity=1,  # Buy only one item at a time
+                quantity=1,
                 type='buy',
                 price=total_price
             )
@@ -176,11 +206,11 @@ class BuyGood(View):
             sellergood.goods.price = new_price
             sellergood.goods.save()
 
-            # Decrease the quantity of the SellerGood by one
+
             sellergood.quantity -= 1
             sellergood.save()
 
-            # If the quantity is zero, remove the SellerGood from the seller's list
+
             if sellergood.quantity == 0:
                 sellergood.delete()
 
@@ -247,51 +277,6 @@ class SellGood(View):
 
 
 
-def simulation_view(request):
-    initial_supply = 100
-    initial_demand = 80
-    price = 10
-    time_steps = 100
-
-    supply_data = [initial_supply]
-    demand_data = [initial_demand]
-    price_data = [price]
-
-    for _ in range(time_steps):
-        supply_change = random.randint(-5, 5)
-        user_interaction = random.randint(-10, 10)
-        demand_change = user_interaction
-
-        new_supply = max(supply_data[-1] + supply_change, 0)
-        new_demand = max(demand_data[-1] + demand_change, 0)
-
-        supply_data.append(new_supply)
-        demand_data.append(new_demand)
-
-        price += (new_demand - new_supply) * 0.1
-        price = max(price, 0)
-        price_data.append(price)
-
-    # Plot the simulation results
-    plt.figure(figsize=(10, 6))
-    plt.plot(supply_data, label='Supply')
-    plt.plot(demand_data, label='Demand')
-    plt.plot(price_data, label='Price')
-    plt.xlabel('Time')
-    plt.ylabel('Value')
-    plt.title('Supply and Demand Simulation with User Interactions')
-    plt.legend()
-
-
-    from io import BytesIO
-    buffer = BytesIO()
-    plt.savefig(buffer, format='png')
-    plt.close()
-
-
-    buffer.seek(0)
-    plot_image_base64 = base64.b64encode(buffer.read()).decode()
-    return render(request, 'seller_detail.html', {'plot_image_base64': plot_image_base64})
 
 
 

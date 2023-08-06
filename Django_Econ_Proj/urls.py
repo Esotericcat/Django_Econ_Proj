@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from SimGame import views
-from SimGame.views import SellerDetail, PlayerDetail, simulation_view, GoodDetail
+from SimGame.views import SellerDetail, PlayerDetail,  GoodDetail
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,7 +31,7 @@ urlpatterns = [
     path('seller/<int:pk>/', SellerDetail.as_view(), name='seller_detail'),
     path('buy/<int:sellergood_id>/', views.BuyGood.as_view(), name='buy_good'),
     path('sell/<int:sellergood_id>/', views.SellGood.as_view(), name='sell_good'),
-    path('simulation/', simulation_view, name='simulation'),
+
     path('good_detail/<int:pk>/', GoodDetail.as_view(), name='good_detail'),
 
 
