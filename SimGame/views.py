@@ -1,4 +1,4 @@
-
+import decimal
 
 from django.contrib.auth import authenticate, login, logout
 
@@ -14,9 +14,31 @@ import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
 from SimGame.forms import LoginForm, RegisterForm, ChooseUserForm
-from SimGame.models import Balance, SellerGoods, Seller, Transaction, Inventory
+from SimGame.models import Balance, SellerGoods, Seller, Transaction, Inventory, Goods
 
 
+def generate_simulation_graph(good_id):
+    transactions = Transaction.objects.filter(goods_id=good_id).order_by('date')
+
+    price_data = [transaction.price for transaction in transactions]
+
+
+    plt.figure(figsize=(8, 4))
+    plt.plot(price_data, label='Price')
+    plt.xlabel('Number of Transactions')
+    plt.ylabel('Price')
+    plt.title(f'Price Simulation Over Time for Good {good_id}')
+    plt.legend()
+
+
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    plt.close()
+
+    # Return the base64 encoded image
+    buffer.seek(0)
+    plot_image_base64 = base64.b64encode(buffer.read()).decode()
+    return plot_image_base64
 class LoginView(View):
     def get(self, request):
             return render(request, 'login.html')
@@ -65,7 +87,7 @@ class Home(View):
 
 class PlayerDetail(View):
     def get(self, request):
-        # Get the inventory for the currently logged-in user
+
         inventory = Inventory.objects.filter(user=request.user).select_related('goods')
         return render(request, 'player_detail.html', {'inventory': inventory})
 
@@ -85,11 +107,21 @@ class SellerDetail(View):
         seller = get_object_or_404(Seller, pk=pk)
         sellergoods = SellerGoods.objects.filter(seller=seller).select_related('goods')
 
+
         for sellergood in sellergoods:
             sellergood.total_price = sellergood.quantity * sellergood.goods.price
 
 
-        return render(request, 'seller_detail.html', {'seller': seller, 'sellergoods': sellergoods})
+
+
+
+        context = {
+            'seller': seller,
+            'sellergoods': sellergoods,
+
+        }
+
+        return render(request, 'seller_detail.html', context)
 
 
 
@@ -99,6 +131,19 @@ class PlayerStats(View):
         user = {'name': user_balance.user.username, 'balance': user_balance.amount}
         return render(request, 'player_stats.html', {'user': user})
 
+class GoodDetail(View):
+    def get(self, request, pk):
+        good = get_object_or_404(Goods, pk=pk)
+
+        # Generate the simulation graph for the specific good
+        plot_image_base64 = generate_simulation_graph(good.id)
+
+        context = {
+            'good': good,
+            'plot_image_base64': plot_image_base64,
+        }
+
+        return render(request, 'good_detail.html', context)
 
 
 class BuyGood(View):
@@ -147,6 +192,7 @@ class SellGood(View):
         sellergood = get_object_or_404(SellerGoods, id=sellergood_id)
         buyer_balance = Balance.objects.get(user=request.user)
         invetory = Inventory.objects.get(user=request.user, goods=sellergood.goods)
+
         if sellergood.quantity > 0:
             # Calculate the total price of one item
             total_price = sellergood.goods.price
@@ -160,12 +206,13 @@ class SellGood(View):
                 user=request.user,
                 seller=sellergood.seller,
                 goods=sellergood.goods,
-                quantity=1,  # Buy only one item at a time
+                quantity=1,
                 type='sell',
                 price=total_price
             )
 
-            # Create or update the Inventory for the user
+
+
             inventory_item, created = Inventory.objects.get_or_create(
                 user=request.user,
                 goods=sellergood.goods,
@@ -173,11 +220,18 @@ class SellGood(View):
             inventory_item.quantity -= 1
             inventory_item.save()
 
-            # Decrease the quantity of the SellerGood by one
+            percentage_decrease = Decimal('0.05')  # 5% decrease
+            new_price = total_price - (total_price * percentage_decrease)
+
+            sellergood.goods.price = new_price
+            sellergood.goods.save()
+
+
+
             sellergood.quantity += 1
             sellergood.save()
 
-            # If the quantity is zero, remove the SellerGood from the seller's list
+
             if sellergood.quantity == 0:
                 sellergood.delete()
             elif inventory_item.quantity < 0:
@@ -185,6 +239,7 @@ class SellGood(View):
 
 
             return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
+
 
 
         return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
@@ -204,7 +259,7 @@ def simulation_view(request):
 
     for _ in range(time_steps):
         supply_change = random.randint(-5, 5)
-        user_interaction = random.randint(-10, 10)  # Update based on user actions
+        user_interaction = random.randint(-10, 10)
         demand_change = user_interaction
 
         new_supply = max(supply_data[-1] + supply_change, 0)
@@ -227,14 +282,17 @@ def simulation_view(request):
     plt.title('Supply and Demand Simulation with User Interactions')
     plt.legend()
 
-    # Save the plot to a BytesIO object
+
     from io import BytesIO
     buffer = BytesIO()
     plt.savefig(buffer, format='png')
     plt.close()
 
-    # Return the plot image to the template
+
     buffer.seek(0)
     plot_image_base64 = base64.b64encode(buffer.read()).decode()
-    return render(request, 'simulation.html', {'plot_image_base64': plot_image_base64})
+    return render(request, 'seller_detail.html', {'plot_image_base64': plot_image_base64})
+
+
+
 

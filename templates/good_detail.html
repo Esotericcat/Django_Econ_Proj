@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{{ good.name }} Details</h1>
+
+
+    <h2>Supply and Demand Simulation</h2>
+    <img src="data:image/png;base64,{{ plot_image_base64 }}" alt="Simulation Graph">
+
+    <a href="{% url 'vendor_list' %}">Back to Vendor List</a>
+{% endblock content %}

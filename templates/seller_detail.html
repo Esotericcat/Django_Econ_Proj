@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
 <style>
     .seller-details-table {
         width: 100%;
@@ -25,7 +26,12 @@
         display: block;
         margin-top: 10px;
     }
+
+
+
 </style>
+
+
 
 <h1>{{ seller.name }} Details</h1>
 <table class="seller-details-table">
@@ -35,13 +41,13 @@
             <th>Quantity</th>
             <th>Price</th>
             <th>Total Price</th>
-            <th>Actions</th> <!-- New column for the buttons/forms -->
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
         {% for sellergood in sellergoods %}
         <tr>
-            <td>{{ sellergood.goods.name }}</td>
+            <td><a href="{% url 'good_detail' sellergood.goods_id %}">{{ sellergood.goods.name }}</a></td>
             <td>{{ sellergood.quantity }}</td>
             <td>${{ sellergood.goods.price }}</td>
             <td>${{ sellergood.total_price }}</td>
@@ -53,7 +59,7 @@
                     <input type="submit" value="Sell">
                 </form>
 
-                <!-- Buy form with POST method -->
+
                 <form action="{% url 'buy_good' sellergood.id %}" method="post">
                     {% csrf_token %}
                     <input type="submit" value="Buy">
@@ -64,6 +70,7 @@
         {% endfor %}
     </tbody>
 </table>
+
 
 <a href="{% url 'vendor_list' %}">Back to Vendor List</a>
 {% endblock content %}

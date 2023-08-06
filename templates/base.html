@@ -14,13 +14,13 @@
 
     {% include 'user_panel.html' %}
     <ul class="link-bar">
-        <!-- Add your links here -->
+
         <li><a href="#">Home</a></li>
         <li><a href="{% url 'player_detail' %}">Info Gracza</a></li>
         <li><a href="{% url 'register' %}">Zarejestruj się</a></li>
         <li> <a href="{% url  'player_list'%}"> Lista Graczy"</a></li>
         <li><a href="{% url 'vendor_list' %}">Vendors</a></li>
-        <li><a href="{% url 'simulation' %}">simulation</a></li>
+{#        <li><a href="{% url 'simulation' %}">simulation</a></li>#}
     </ul>
     {% include 'player_stats.html' %}
     {% block content %}
