@@ -1,16 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
-</head>
-<body>
- <h1>Supply and Demand Simulation</h1>
-    <img src="data:image/png;base64,{{ plot_image_base64 }}" alt="Simulation Plot">
-
-</body>
-</html>
-
+{% extends 'base.html' %}
+{% block content %}
+  <h1>Simulation Results</h1>
+    <div style="text-align: center;">
+        <img src="data:image/png;base64,{{ plot_image_base64 }}" alt="Demand and Supply Simulation">
+    </div>
+    <a href="{% url 'home' %}">Go Back Home</a>
+{% endblock content %}
+```

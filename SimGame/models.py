@@ -24,6 +24,9 @@ class Goods(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     cumulative_demand = models.IntegerField(default=0)
 
+    def __str__(self):
+        return self.name
+
 
 
 
@@ -32,10 +35,17 @@ class Goods(models.Model):
 class Seller(models.Model):
     name = models.CharField(max_length=64)
 
+    def __str__(self):
+        return self.name
+
 class SellerGoods(models.Model):
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
     goods = models.ForeignKey(Goods, on_delete=models.CASCADE)
     quantity = models.IntegerField()
+
+    def __str__(self):
+        return self.name
+
 
 
 class Transaction(models.Model):
@@ -46,13 +56,19 @@ class Transaction(models.Model):
     type = models.CharField(max_length=64)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateTimeField(auto_now_add=True)
+    cumulative_quantity_sum = models.IntegerField(default=0)
 
-    demand_change = models.IntegerField(default=0)  # New field to track demand change
+
+    demand_change = models.IntegerField(default=0)
 
     def save(self, *args, **kwargs):
         super(Transaction, self).save(*args, **kwargs)
 
-        # Update demand change based on the transaction type and quantity
+        if self.type == 'buy':
+            self.cumulative_quantity_sum += self.quantity
+        elif self.type == 'sell':
+            self.cumulative_quantity_sum -= self.quantity
+
         if self.type == 'buy':
             self.demand_change = self.quantity
         elif self.type == 'sell':

@@ -1,2 +1,18 @@
 {% extends 'base.html' %}
-{% blo%}
+{% block content%}
+
+<h1>Market Overview</h1>
+<h2>Your Goods</h2>
+<ul>
+    {% for goodss in goods_list %}
+    <li>{{ goodss.name }} - Price: {{ goodss.price }}</li>
+    {% endfor %}
+</ul>
+<h2>Recent Transactions</h2>
+<ul>
+    {% for transaction in transactions %}
+    <li>{{ transaction.date }} - {{ transaction.type }} {{ transaction.quantity }} {{ transaction.goods.name }} at {{ transaction.price }}</li>
+    {% endfor %}
+</ul>
+
+{% endblock %}

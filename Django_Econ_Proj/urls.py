@@ -31,6 +31,9 @@ urlpatterns = [
     path('seller/<int:pk>/', SellerDetail.as_view(), name='seller_detail'),
     path('buy/<int:sellergood_id>/', views.BuyGood.as_view(), name='buy_good'),
     path('sell/<int:sellergood_id>/', views.SellGood.as_view(), name='sell_good'),
+    path('market/',views.MarketView.as_view(), name='market'),
+
+
 
     path('good_detail/<int:pk>/', GoodDetail.as_view(), name='good_detail'),
 
