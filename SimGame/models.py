@@ -22,8 +22,9 @@ def save_user_balance(sender, instance, **kwargs):
 class Goods(models.Model):
     name = models.CharField(max_length=64)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    def __str__(self):
-        return self.name
+    cumulative_demand = models.IntegerField(default=0)
+
+
 
 
 
@@ -46,6 +47,23 @@ class Transaction(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateTimeField(auto_now_add=True)
 
+    demand_change = models.IntegerField(default=0)  # New field to track demand change
+
+    def save(self, *args, **kwargs):
+        super(Transaction, self).save(*args, **kwargs)
+
+        # Update demand change based on the transaction type and quantity
+        if self.type == 'buy':
+            self.demand_change = self.quantity
+        elif self.type == 'sell':
+            self.demand_change = -self.quantity
+
+        self.goods.cumulative_demand += self.demand_change
+        self.goods.save()
+
+    @property
+    def cumulative_demand(self):
+        return self.goods.cumulative_demand
 class Inventory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     goods = models.ForeignKey(Goods, on_delete=models.CASCADE)
@@ -54,8 +72,9 @@ class Inventory(models.Model):
     def __str__(self):
         return f"{self.user.username}'s {self.goods.name} - Quantity: {self.quantity}"
 
+class Demand(models.Model):
+    goods = models.ForeignKey(Goods, on_delete=models.CASCADE)
+    demand = models.IntegerField(default=0)
 
-
-
-
-
+    def __str__(self):
+        return f"{self.goods.name} - Demand: {self.demand}"
