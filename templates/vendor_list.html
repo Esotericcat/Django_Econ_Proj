@@ -1,12 +1,43 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1>Vendor List</h1>
+    <style>
+        /* Add styles directly here */
+        .vendor-list {
+            padding: 20px;
+            background-color: #f7f7f7;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
 
-    <ul>
-        {% for seller in sellers %}
-        <li>
-            <a href="{% url 'seller_detail' seller.id %}">{{ seller.name }}</a>
-        </li>
-        {% endfor %}
-    </ul>
+        .vendor-list li {
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            margin: 5px;
+            padding: 10px;
+            background-color: #fff;
+            list-style: none;
+        }
+
+        .vendor-list a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .vendor-list a:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+    </style>
+
+    <div class="vendor-list">
+        <h1>Vendor List</h1>
+
+        <ul>
+            {% for seller in sellers %}
+            <li>
+                <a href="{% url 'seller_detail' seller.id %}">{{ seller.name }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
 {% endblock %}

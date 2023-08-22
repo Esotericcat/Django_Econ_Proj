@@ -201,6 +201,10 @@ class GoodDetail(View):
         return render(request, 'good_detail.html', context)
 
 
+
+
+
+
 class BuyGood(View):
     def post(self, request, sellergood_id):
         sellergood = get_object_or_404(SellerGoods, id=sellergood_id)
