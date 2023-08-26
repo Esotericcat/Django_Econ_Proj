@@ -39,19 +39,39 @@ def calculate_equilibrium_price(intercept, coefficient, demand):
 
 from decimal import Decimal
 
-def adjust_price_based_on_equilibrium(good):
+
+def adjust_price_based_on_equilibrium(good, transaction_type):
     first_transaction = Transaction.objects.filter(goods=good).order_by('date').first()
     if first_transaction:
         intercept = Decimal(str(first_transaction.price))
     else:
         intercept = Decimal('0.00')
+
     demand = calculate_demand(good)
     num_sellers = Seller.objects.count()
     coefficient = Decimal('0.5') - (num_sellers * Decimal('0.02'))
-    equilibrium_price = calculate_equilibrium_price(intercept, coefficient, demand)
 
-    if equilibrium_price >= Decimal('0.00'):
-        good.price = equilibrium_price
+    damping_factor = Decimal('0.1')
+
+    current_price = good.price
+    price_difference = 0
+
+    if transaction_type == 'buy':
+        demand = max(demand, 0)
+        equilibrium_price = calculate_equilibrium_price(intercept, coefficient, demand)
+        price_difference = equilibrium_price - current_price
+        damping_factor *= Decimal('1.1')
+    elif transaction_type == 'sell':
+        demand = min(demand, 0)
+        equilibrium_price = calculate_equilibrium_price(intercept, coefficient, -demand)
+        price_difference = current_price - equilibrium_price
+        damping_factor *= Decimal('0.9')
+
+    price_change = price_difference * damping_factor
+    new_price = current_price + price_change
+
+    if new_price >= Decimal('0.00'):
+        good.price = new_price
         good.save()
     else:
         good.price = Decimal('0.00')
@@ -127,6 +147,7 @@ class RegisterView(View):
             user = form.save(commit = False)
             user.set_password(form.cleaned_data['password1'])
             user.save()
+
             return redirect('login')
         return render(request, 'form.html', {'form': form})
 
@@ -146,7 +167,26 @@ class MarketView(View):
         return render(request,'marketplace.html', context)
 
 
+class ChangeGoodsView(View):
+    template_name = 'change.html'
 
+    def get(self, request):
+        seller_goods = SellerGoods.objects.all()
+        return render(request, self.template_name, {'seller_goods': seller_goods})
+
+    def post(self, request):
+        seller_goods_id = request.POST.get('seller_goods')
+        new_price = request.POST.get('price')
+        new_quantity = request.POST.get('quantity')
+
+        if seller_goods_id and new_price is not None and new_quantity is not None:
+            seller_goods = SellerGoods.objects.get(pk=seller_goods_id)
+            seller_goods.goods.price = new_price
+            seller_goods.quantity = new_quantity
+            seller_goods.goods.save()
+            seller_goods.save()
+
+        return redirect('change_goods')
 
 class PlayerDetail(View):
     def get(self, request):
@@ -201,10 +241,6 @@ class GoodDetail(View):
         return render(request, 'good_detail.html', context)
 
 
-
-
-
-
 class BuyGood(View):
     def post(self, request, sellergood_id):
         sellergood = get_object_or_404(SellerGoods, id=sellergood_id)
@@ -223,7 +259,9 @@ class BuyGood(View):
                 type='buy',
                 price=total_price
             )
-            adjust_price_based_on_equilibrium(sellergood.goods)
+
+            # Call the adjust_price_based_on_equilibrium function with transaction_type='buy'
+            adjust_price_based_on_equilibrium(sellergood.goods, transaction_type='buy')
 
             sellergood.quantity -= 1
             sellergood.save()
@@ -235,11 +273,12 @@ class BuyGood(View):
         else:
             return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
 
+
 class SellGood(View):
     def post(self, request, sellergood_id):
         sellergood = get_object_or_404(SellerGoods, id=sellergood_id)
         buyer_balance = Balance.objects.get(user=request.user)
-        inventory_item = Inventory.objects.get(user=request.user, goods=sellergood.goods)
+
         if sellergood.quantity > 0:
 
             total_price = sellergood.goods.price
@@ -253,24 +292,18 @@ class SellGood(View):
                 type='sell',
                 price=total_price
             )
-            inventory_item.quantity -= 1
-            inventory_item.save()
+
+            # Call the adjust_price_based_on_equilibrium function with transaction_type='sell'
+            adjust_price_based_on_equilibrium(sellergood.goods, transaction_type='sell')
+
             sellergood.quantity += 1
             sellergood.save()
-            adjust_price_based_on_equilibrium(sellergood.goods)
             if sellergood.quantity == 0:
                 sellergood.delete()
-            elif inventory_item.quantity < 0:
-
-
-                return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
 
             return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
 
         return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
-
-
-
 
 
 

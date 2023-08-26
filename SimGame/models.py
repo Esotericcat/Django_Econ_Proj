@@ -8,17 +8,15 @@ class Balance(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
 
-
 @receiver(post_save, sender=User)
 def create_user_balance(sender, instance, created, **kwargs):
     if created:
-        Balance.objects.create(user=instance, amount=0.00)
+        initial_balance = 500.00  # Set the desired initial balance amount here
+        Balance.objects.create(user=instance, amount=initial_balance)
 
 @receiver(post_save, sender=User)
 def save_user_balance(sender, instance, **kwargs):
     instance.balance.save()
-
-
 class Goods(models.Model):
     name = models.CharField(max_length=64)
     price = models.DecimalField(max_digits=10, decimal_places=2)

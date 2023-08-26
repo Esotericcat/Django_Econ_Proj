@@ -32,6 +32,7 @@ urlpatterns = [
     path('buy/<int:sellergood_id>/', views.BuyGood.as_view(), name='buy_good'),
     path('sell/<int:sellergood_id>/', views.SellGood.as_view(), name='sell_good'),
     path('market/',views.MarketView.as_view(), name='market'),
+    path('change',views.ChangeGoodsView.as_view(), name='change_goods'),
 
 
 
