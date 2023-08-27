@@ -8,8 +8,8 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.test import Client
-from SimGame.models import SellerGoods, Goods, Balance, Transaction, Seller, \
-    Inventory  # Replace with your actual import paths
+from SimGame.models import SellerGoods, Goods, Balance, Transaction, Seller
+
 from decimal import Decimal
 
 from SimGame.forms import RegisterForm, LoginForm
@@ -115,5 +115,38 @@ def test_sell_good_view(client):
 
     updated_sellergood = SellerGoods.objects.get(id=sellergood.id)
     assert updated_sellergood.quantity == 2
+
+
+
+@pytest.mark.django_db
+def test_create_seller(client):
+    url = reverse('create_seller')
+
+
+    response_valid = client.post(url, {'seller_name': 'Dobre'})
+    assert response_valid.status_code == 302
+    assert Seller.objects.filter(name='Dobre').exists()
+
+    response_invalid = client.post(url, {'seller_name': 'zly123!'})
+    assert response_invalid.status_code == 200
+    assert 'error_message' in response_invalid.context
+    assert not Seller.objects.filter(name='zly123!').exists()
+
+
+@pytest.mark.django_db
+def test_delete_good_view(client):
+    sellergood = SellerGoods.objects.create(seller_id=1, goods_id=1, quantity=10)
+    sellergood_id = sellergood.id
+
+    url = reverse('delete_good', args=[sellergood_id])
+
+    #
+    assert SellerGoods.objects.filter(id=sellergood_id).exists()
+
+    response = client.post(url)
+    assert response.status_code == 302
+    assert response.url == reverse('seller_detail', args=[sellergood.seller_id])
+
+    assert not SellerGoods.objects.filter(id=sellergood_id).exists()
 
 

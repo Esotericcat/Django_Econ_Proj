@@ -11,7 +11,7 @@ class Balance(models.Model):
 @receiver(post_save, sender=User)
 def create_user_balance(sender, instance, created, **kwargs):
     if created:
-        initial_balance = 500.00  # Set the desired initial balance amount here
+        initial_balance = 500.00
         Balance.objects.create(user=instance, amount=initial_balance)
 
 @receiver(post_save, sender=User)
@@ -42,7 +42,7 @@ class SellerGoods(models.Model):
     quantity = models.IntegerField()
 
     def __str__(self):
-        return self.name
+        return f"Seller: {self.seller}, Goods: {self.goods}, Quantity: {self.quantity}"
 
 
 
@@ -78,13 +78,7 @@ class Transaction(models.Model):
     @property
     def cumulative_demand(self):
         return self.goods.cumulative_demand
-class Inventory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    goods = models.ForeignKey(Goods, on_delete=models.CASCADE)
-    quantity = models.IntegerField(default=0)
 
-    def __str__(self):
-        return f"{self.user.username}'s {self.goods.name} - Quantity: {self.quantity}"
 
 class Demand(models.Model):
     goods = models.ForeignKey(Goods, on_delete=models.CASCADE)

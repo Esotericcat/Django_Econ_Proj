@@ -41,11 +41,28 @@ class GoodsForm(forms.ModelForm):
         model = Goods
         fields = ['name']
 
+
+
+
 class SellerGoodsForm(forms.ModelForm):
-    model = SellerGoods
-    fields = ['quantity']
-
-
     class Meta:
-        model = Goods
-        fields = []  # This form doesn't map to any model fields
+        model = SellerGoods
+        fields = ['seller', 'goods', 'quantity']
+
+
+class AddGoodsForm(forms.Form):
+    goods = forms.ModelChoiceField(queryset=Goods.objects.all(), empty_label="Select a goods")
+    quantity = forms.IntegerField(min_value=1)
+
+
+class SellerForm(forms.ModelForm):
+    class Meta:
+        model = Seller
+        fields = ['name']
+
+
+
+class CreateSellerForm(forms.ModelForm):
+    class Meta:
+        model = Seller
+        fields = ['name']

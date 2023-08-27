@@ -26,12 +26,7 @@
         display: block;
         margin-top: 10px;
     }
-
-
-
 </style>
-
-
 
 <h1>{{ seller.name }} Details</h1>
 <table class="seller-details-table">
@@ -45,32 +40,44 @@
         </tr>
     </thead>
     <tbody>
-        {% for sellergood in sellergoods %}
-        <tr>
-            <td><a href="{% url 'good_detail' sellergood.goods_id %}">{{ sellergood.goods.name }}</a></td>
-            <td>{{ sellergood.quantity }}</td>
-            <td>${{ sellergood.goods.price }}</td>
-            <td>${{ sellergood.total_price }}</td>
-            <td>
+    {% for sellergood in sellergoods %}
+    <tr>
+        <td><a href="{% url 'good_detail' sellergood.goods_id %}">{{ sellergood.goods.name }}</a></td>
+        <td>{{ sellergood.quantity }}</td>
+        <td>${{ sellergood.goods.price }}</td>
+        <td>${{ sellergood.total_price }}</td>
+        <td>
+            <!-- Sell form with POST method -->
+            <form action="{% url 'sell_good' sellergood.id %}" method="post">
+                {% csrf_token %}
+                <input type="submit" value="Sell">
+            </form>
+            <form action="{% url 'buy_good' sellergood.id %}" method="post">
+                {% csrf_token %}
+                <input type="submit" value="Buy">
+            </form>
 
-                <!-- Sell form with POST method -->
-                <form action="{% url 'sell_good' sellergood.id %}" method="post">
-                    {% csrf_token %}
-                    <input type="submit" value="Sell">
-                </form>
-
-
-                <form action="{% url 'buy_good' sellergood.id %}" method="post">
-                    {% csrf_token %}
-                    <input type="submit" value="Buy">
-                </form>
-
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
+            <!-- Delete form with POST method -->
+            <form action="{% url 'delete_good' sellergood.id %}" method="post">
+                {% csrf_token %}
+                <input type="submit" value="Delete">
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
 </table>
 
+<!-- Add Goods Form -->
+
+<div class="add-goods-form">
+    <h2>Add Goods</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ add_goods_form.as_p }}
+        <button type="submit">Add Goods</button>
+    </form>
+</div>
 
 <a href="{% url 'vendor_list' %}">Back to Vendor List</a>
 {% endblock content %}

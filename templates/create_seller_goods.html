@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Create Seller and Add Goods</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ create_seller_form.as_p }}
+        <button type="submit">Create Seller</button>
+    </form>
+
+    <hr>
+
+    <h2>Add Goods to Seller</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ add_goods_form.as_p }}
+        <button type="submit">Add Goods</button>
+    </form>
+{% endblock %}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Seller Goods</title>
+</head>
+<body>
+    <h1>Edit Seller Goods</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="seller">Select Seller:</label>
+        <select name="seller" id="seller">
+            <option value="">Select a seller</option>
+            {% for seller in sellers %}
+                <option value="{{ seller.id }}">{{ seller.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Edit Goods</button>
+    </form>
+
+    {% if selected_seller %}
+    <div class="edit-seller-goods-form">
+        <h2>Edit Goods for {{ selected_seller.name }}</h2>
+        <form method="post">
+            {% csrf_token %}
+            <label for="goods">Select Goods:</label>
+            <select name="goods" id="goods">
+                <option value="">Select a goods</option>
+                {% for goods in all_goods %}
+                    <option value="{{ goods.id }}">{{ goods.name }}</option>
+                {% endfor %}
+            </select>
+            <br>
+            <label for="quantity">Quantity:</label>
+            <input type="number" name="quantity" id="quantity" min="1">
+            <br>
+            <button type="submit">Add Goods</button>
+        </form>
+    </div>
+    {% endif %}
+</body>
+</html>

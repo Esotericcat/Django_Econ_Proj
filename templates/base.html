@@ -16,15 +16,16 @@
     <ul class="link-bar">
 
         <li><a href="#">Home</a></li>
-        <li><a href="{% url 'player_detail' %}">Info Gracza</a></li>
         <li><a href="{% url 'register' %}">Zarejestruj się</a></li>
         <li> <a href="{% url  'player_list'%}"> Lista Graczy"</a></li>
         <li><a href="{% url 'vendor_list' %}">Vendors</a></li>
         <li><a href="{% url 'market' %}">Market</a></li>
         <li><a href="{% url 'change_goods' %}">Options</a></li>
+        <li><a href="{% url 'edit_seller_goods_page' %}">Educja</a></li>
 
 
-{#        <li><a href="{% url 'simulation' %}">simulation</a></li>#}
+
+
     </ul>
     {% include 'player_stats.html' %}
     {% block content %}

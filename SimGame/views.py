@@ -1,11 +1,11 @@
 import decimal
 
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import User
+
 from django.db.models import Sum
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views import View
@@ -15,8 +15,9 @@ import random
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
-from SimGame.forms import LoginForm, RegisterForm, ChooseUserForm
-from SimGame.models import Balance, SellerGoods, Seller, Transaction, Inventory, Goods
+from SimGame.forms import LoginForm, RegisterForm, ChooseUserForm, SellerForm, SellerGoodsForm, \
+    AddGoodsForm, CreateSellerForm
+from SimGame.models import Balance, SellerGoods, Seller, Transaction,  Goods
 
 
 
@@ -34,24 +35,28 @@ def calculate_demand(good):
 
 
 def calculate_equilibrium_price(intercept, coefficient, demand):
-    equilibrium_price = (intercept - demand) / coefficient
+    equilibrium_price = (intercept - demand) * coefficient
     return max(equilibrium_price, 0)
 
 from decimal import Decimal
 
 
 def adjust_price_based_on_equilibrium(good, transaction_type):
-    first_transaction = Transaction.objects.filter(goods=good).order_by('date').first()
-    if first_transaction:
-        intercept = Decimal(str(first_transaction.price))
-    else:
+    try:
+        seller_goods = SellerGoods.objects.filter(goods=good).first()
+        if seller_goods:
+            intercept = Decimal(seller_goods.quantity)
+        else:
+            intercept = Decimal('0.00')
+
+    except SellerGoods.DoesNotExist:
         intercept = Decimal('0.00')
 
     demand = calculate_demand(good)
     num_sellers = Seller.objects.count()
     coefficient = Decimal('0.5') - (num_sellers * Decimal('0.02'))
 
-    damping_factor = Decimal('0.1')
+    damping_factor = Decimal('0.05')
 
     current_price = good.price
     price_difference = 0
@@ -76,6 +81,8 @@ def adjust_price_based_on_equilibrium(good, transaction_type):
     else:
         good.price = Decimal('0.00')
         good.save()
+
+
 def generate_simulation_graph(good_id):
     transactions = Transaction.objects.filter(goods_id=good_id).order_by('date')
     seller_goods = SellerGoods.objects.filter(goods_id=good_id).order_by('seller', 'goods')
@@ -188,11 +195,7 @@ class ChangeGoodsView(View):
 
         return redirect('change_goods')
 
-class PlayerDetail(View):
-    def get(self, request):
 
-        inventory = Inventory.objects.filter(user=request.user).select_related('goods')
-        return render(request, 'player_detail.html', {'inventory': inventory})
 
 class PlayerList(View):
     def get(self, request):
@@ -205,6 +208,50 @@ class VendorList(View):
         return render(request, 'vendor_list.html', {'sellers': sellers})
 
 
+
+
+
+
+class DeleteSellerView(View):
+    def post(self, request, seller_id):
+        try:
+            seller = Seller.objects.get(pk=seller_id)
+            seller.delete()
+        except Seller.DoesNotExist:
+            pass  # Seller doesn't exist, handle accordingly
+
+        return redirect('vendor_list')
+
+
+class EditSellerGoodsPageView(View):
+    template_name = 'edit_seller.html'
+
+    def get(self, request):
+        sellers = Seller.objects.all()
+        return render(request, self.template_name, {'sellers': sellers})
+
+    def post(self, request):
+        sellers = Seller.objects.all()
+        selected_seller = None
+        all_goods = Goods.objects.all()  # Initialize it here
+
+        selected_seller_id = request.POST.get('seller')
+
+        if selected_seller_id:
+            selected_seller = get_object_or_404(Seller, pk=selected_seller_id)
+            goods_id = request.POST.get('goods')
+            quantity = int(request.POST.get('quantity', 0))
+
+            if goods_id and quantity > 0:
+                selected_goods = get_object_or_404(Goods, pk=goods_id)
+                seller_goods, created = SellerGoods.objects.get_or_create(seller=selected_seller, goods=selected_goods)
+                seller_goods.quantity += quantity
+                seller_goods.save()
+
+        return render(request, self.template_name,
+                      {'sellers': sellers, 'selected_seller': selected_seller, 'all_goods': all_goods})
+
+
 class SellerDetail(View):
     def get(self, request, pk):
         seller = get_object_or_404(Seller, pk=pk)
@@ -212,15 +259,66 @@ class SellerDetail(View):
         for sellergood in sellergoods:
             sellergood.total_price = sellergood.quantity * sellergood.goods.price
 
-            context = {
+        add_goods_form = AddGoodsForm()  # Initialize the AddGoodsForm
+
+        context = {
             'seller': seller,
             'sellergoods': sellergoods,
+            'add_goods_form': add_goods_form,
+        }
 
+        return render(request, 'seller_detail.html', context)
+
+    def post(self, request, pk):
+        seller = get_object_or_404(Seller, pk=pk)
+        sellergoods = SellerGoods.objects.filter(seller=seller).select_related('goods')
+
+        # Process the form data
+        form = AddGoodsForm(request.POST)
+        if form.is_valid():
+            selected_goods = form.cleaned_data['goods']
+            quantity = form.cleaned_data['quantity']
+
+            # Check if SellerGoods object already exists, update quantity
+            try:
+                seller_goods = SellerGoods.objects.get(seller=seller, goods=selected_goods)
+                seller_goods.quantity += quantity
+                seller_goods.save()
+            except SellerGoods.DoesNotExist:
+                # Create new SellerGoods object
+                seller_goods = SellerGoods.objects.create(seller=seller, goods=selected_goods, quantity=quantity)
+
+            # Redirect back to the same page
+            return redirect('seller_detail', pk=pk)
+
+        # If form is not valid, continue rendering the page with errors
+        context = {
+            'seller': seller,
+            'sellergoods': sellergoods,
+            'add_goods_form': form,
         }
 
         return render(request, 'seller_detail.html', context)
 
 
+class CreateSeller(View):
+    def post(self, request):
+        seller_name = request.POST.get('seller_name')
+
+        if seller_name and seller_name.isalpha():
+            seller = Seller.objects.create(name=seller_name)
+            return redirect('vendor_list')
+        else:
+            error_message = 'Invalid input. Only letters are allowed.'
+            return render(request, 'vendor_list.html', {'error_message': error_message})
+
+
+
+class DeleteGoodView(View):
+    def post(self, request, sellergood_id):
+        sellergood = get_object_or_404(SellerGoods, id=sellergood_id)
+        sellergood.delete()
+        return redirect('seller_detail', pk=sellergood.seller_id)
 
 class PlayerStats(View):
     def get(self, request):
@@ -260,7 +358,7 @@ class BuyGood(View):
                 price=total_price
             )
 
-            # Call the adjust_price_based_on_equilibrium function with transaction_type='buy'
+
             adjust_price_based_on_equilibrium(sellergood.goods, transaction_type='buy')
 
             sellergood.quantity -= 1
@@ -293,7 +391,7 @@ class SellGood(View):
                 price=total_price
             )
 
-            # Call the adjust_price_based_on_equilibrium function with transaction_type='sell'
+
             adjust_price_based_on_equilibrium(sellergood.goods, transaction_type='sell')
 
             sellergood.quantity += 1

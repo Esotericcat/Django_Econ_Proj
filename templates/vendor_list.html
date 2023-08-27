@@ -16,6 +16,9 @@
             padding: 10px;
             background-color: #fff;
             list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .vendor-list a {
@@ -27,15 +30,42 @@
             color: #0056b3;
             text-decoration: underline;
         }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
     </style>
+
 
     <div class="vendor-list">
         <h1>Vendor List</h1>
+
+        <!-- Create Seller Form -->
+        <form method="post" action="{% url 'create_seller' %}">
+            {% csrf_token %}
+            <label for="seller-name">Seller Name:</label>
+            <input type="text" id="seller-name" name="seller_name" required>
+            <button type="submit">Create Seller</button>
+        </form>
 
         <ul>
             {% for seller in sellers %}
             <li>
                 <a href="{% url 'seller_detail' seller.id %}">{{ seller.name }}</a>
+                <form method="post" action="{% url 'create_seller' %}">
+    {% csrf_token %}
+    <label for="seller_name">Seller Name:</label>
+    <input type="text" name="seller_name" id="seller_name">
+    {% if error_message %}
+    <p style="color: red;">{{ error_message }}</p>
+    {% endif %}
+    <button type="submit">Add Seller</button>
+</form>
             </li>
             {% endfor %}
         </ul>
