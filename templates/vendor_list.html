@@ -41,11 +41,9 @@
         }
     </style>
 
-
     <div class="vendor-list">
         <h1>Vendor List</h1>
 
-        <!-- Create Seller Form -->
         <form method="post" action="{% url 'create_seller' %}">
             {% csrf_token %}
             <label for="seller-name">Seller Name:</label>
@@ -57,17 +55,14 @@
             {% for seller in sellers %}
             <li>
                 <a href="{% url 'seller_detail' seller.id %}">{{ seller.name }}</a>
-                <form method="post" action="{% url 'create_seller' %}">
-    {% csrf_token %}
-    <label for="seller_name">Seller Name:</label>
-    <input type="text" name="seller_name" id="seller_name">
-    {% if error_message %}
-    <p style="color: red;">{{ error_message }}</p>
-    {% endif %}
-    <button type="submit">Add Seller</button>
-</form>
+                <form method="post" action="{% url 'delete_seller' seller.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="delete-button">Delete</button>
+                </form>
             </li>
+
             {% endfor %}
         </ul>
     </div>
+
 {% endblock %}

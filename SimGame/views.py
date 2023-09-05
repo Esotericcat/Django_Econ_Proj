@@ -1,22 +1,17 @@
 import decimal
 
 from django.contrib.auth import authenticate, login, logout
-
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum
-
-
-
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.views import View
-from decimal import Decimal
 from django.shortcuts import render
-import random
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
-from SimGame.forms import LoginForm, RegisterForm, ChooseUserForm, SellerForm, SellerGoodsForm, \
-    AddGoodsForm, CreateSellerForm
+from SimGame.forms import  RegisterForm,AddGoodsForm,ChangePriceOrCreateGoodForm
+
 from SimGame.models import Balance, SellerGoods, Seller, Transaction,  Goods
 
 
@@ -135,7 +130,6 @@ class LoginView(View):
             return redirect(redirect_url)
         return render(request, 'login.html', {'error': 'Zły login lub hasło'})
 
-
 class LogoutView(View):
 
     def get(self, request):
@@ -160,80 +154,53 @@ class RegisterView(View):
 
 
 
+
+
+
 class Home(View):
     def get(self, request):
         return render(request, 'home.html')
 
 
 
-class MarketView(View):
+class MarketView(LoginRequiredMixin, View):
+    template_name = 'marketplace.html'
+    login_url = '/login/'
+
     def get(self, request):
         goods_list = Goods.objects.all()
-        transactions = Transaction.objects.filter(user=request.user).order_by('-date')[:10]
+        transactions = Transaction.objects.filter(user=request.user).order_by('-date')
         context = {'goods_list': goods_list, 'transactions': transactions}
-        return render(request,'marketplace.html', context)
+        return render(request, self.template_name, context)
 
-
-class ChangeGoodsView(View):
-    template_name = 'change.html'
-
-    def get(self, request):
-        seller_goods = SellerGoods.objects.all()
-        return render(request, self.template_name, {'seller_goods': seller_goods})
-
-    def post(self, request):
-        seller_goods_id = request.POST.get('seller_goods')
-        new_price = request.POST.get('price')
-        new_quantity = request.POST.get('quantity')
-
-        if seller_goods_id and new_price is not None and new_quantity is not None:
-            seller_goods = SellerGoods.objects.get(pk=seller_goods_id)
-            seller_goods.goods.price = new_price
-            seller_goods.quantity = new_quantity
-            seller_goods.goods.save()
-            seller_goods.save()
-
-        return redirect('change_goods')
-
-
-
-class PlayerList(View):
+class PlayerList(LoginRequiredMixin, View):
+    template_name = 'player_list.html'
+    login_url = '/login/'  #
     def get(self, request):
         user_balances = Balance.objects.all()
         players_data = [{'name': balance.user.username, 'balance': balance.amount} for balance in user_balances]
-        return render(request, 'player_list.html', {'players_data': players_data})
+        return render(request, self.template_name, {'players_data': players_data})
 class VendorList(View):
     def get(self, request):
         sellers = Seller.objects.all()
         return render(request, 'vendor_list.html', {'sellers': sellers})
 
-
-
-
-
-
-class DeleteSellerView(View):
+class DeleteSellerView(LoginRequiredMixin, View):
+    login_url = reverse_lazy('login')
     def post(self, request, seller_id):
-        try:
-            seller = Seller.objects.get(pk=seller_id)
-            seller.delete()
-        except Seller.DoesNotExist:
-            pass  # Seller doesn't exist, handle accordingly
-
+        seller = get_object_or_404(Seller, pk=seller_id)
+        seller.delete()
         return redirect('vendor_list')
-
 
 class EditSellerGoodsPageView(View):
     template_name = 'edit_seller.html'
-
     def get(self, request):
         sellers = Seller.objects.all()
         return render(request, self.template_name, {'sellers': sellers})
-
     def post(self, request):
         sellers = Seller.objects.all()
         selected_seller = None
-        all_goods = Goods.objects.all()  # Initialize it here
+        all_goods = Goods.objects.all()
 
         selected_seller_id = request.POST.get('seller')
 
@@ -252,56 +219,66 @@ class EditSellerGoodsPageView(View):
                       {'sellers': sellers, 'selected_seller': selected_seller, 'all_goods': all_goods})
 
 
-class SellerDetail(View):
+class ChangePriceOrCreateGoodView(LoginRequiredMixin, View):
+    template_name = 'change_price_or_create_good.html'
+    login_url = '/login/'  #
+    def get(self, request):
+        form = ChangePriceOrCreateGoodForm()
+        return render(request, self.template_name, {'form': form})
+    def post(self, request):
+        form = ChangePriceOrCreateGoodForm(request.POST)
+        if form.is_valid():
+            good = form.cleaned_data['good']
+            new_good_name = form.cleaned_data['new_good_name']
+            price = form.cleaned_data['price']
+
+            if not good and new_good_name:
+                good = Goods.objects.create(name=new_good_name, price=price)
+            elif good:
+                good.price = price
+                good.save()
+            return redirect('vendor_list')
+        return render(request, self.template_name, {'form': form})
+
+class SellerDetail(LoginRequiredMixin, View):
+    login_url = reverse_lazy('login')  # Replace 'login' with your actual login URL name
     def get(self, request, pk):
         seller = get_object_or_404(Seller, pk=pk)
         sellergoods = SellerGoods.objects.filter(seller=seller).select_related('goods')
         for sellergood in sellergoods:
             sellergood.total_price = sellergood.quantity * sellergood.goods.price
-
-        add_goods_form = AddGoodsForm()  # Initialize the AddGoodsForm
-
+        add_goods_form = AddGoodsForm()
         context = {
             'seller': seller,
             'sellergoods': sellergoods,
             'add_goods_form': add_goods_form,
         }
-
         return render(request, 'seller_detail.html', context)
-
     def post(self, request, pk):
         seller = get_object_or_404(Seller, pk=pk)
         sellergoods = SellerGoods.objects.filter(seller=seller).select_related('goods')
-
-        # Process the form data
         form = AddGoodsForm(request.POST)
         if form.is_valid():
             selected_goods = form.cleaned_data['goods']
             quantity = form.cleaned_data['quantity']
-
-            # Check if SellerGoods object already exists, update quantity
             try:
                 seller_goods = SellerGoods.objects.get(seller=seller, goods=selected_goods)
                 seller_goods.quantity += quantity
                 seller_goods.save()
             except SellerGoods.DoesNotExist:
-                # Create new SellerGoods object
                 seller_goods = SellerGoods.objects.create(seller=seller, goods=selected_goods, quantity=quantity)
-
-            # Redirect back to the same page
             return redirect('seller_detail', pk=pk)
 
-        # If form is not valid, continue rendering the page with errors
         context = {
             'seller': seller,
             'sellergoods': sellergoods,
             'add_goods_form': form,
         }
-
         return render(request, 'seller_detail.html', context)
 
 
-class CreateSeller(View):
+class CreateSeller(LoginRequiredMixin, View):
+    login_url = reverse_lazy('login')
     def post(self, request):
         seller_name = request.POST.get('seller_name')
 
@@ -313,19 +290,21 @@ class CreateSeller(View):
             return render(request, 'vendor_list.html', {'error_message': error_message})
 
 
-
-class DeleteGoodView(View):
+class DeleteGoodView(LoginRequiredMixin, View):
     def post(self, request, sellergood_id):
         sellergood = get_object_or_404(SellerGoods, id=sellergood_id)
         sellergood.delete()
         return redirect('seller_detail', pk=sellergood.seller_id)
 
-class PlayerStats(View):
+class PlayerStats(LoginRequiredMixin, View):
+    template_name = 'player_stats.html'
+    login_url = '/login/'
     def get(self, request):
-        user_balance = Balance.objects.first()
-        user = {'name': user_balance.user.username, 'balance': user_balance.amount}
-        return render(request, 'player_stats.html', {'user': user})
-
+        user_balance = Balance.objects.filter(user=request.user).first()
+        if user_balance:
+            user = {'name': user_balance.user.username, 'balance': user_balance.amount}
+            return render(request, self.template_name, {'user': user})
+        return render(request, self.template_name, {'user': None})
 class GoodDetail(View):
     def get(self, request, pk):
         good = get_object_or_404(Goods, pk=pk)
@@ -335,7 +314,6 @@ class GoodDetail(View):
             'good': good,
             'plot_image_base64': plot_image_base64,
         }
-
         return render(request, 'good_detail.html', context)
 
 
@@ -343,7 +321,6 @@ class BuyGood(View):
     def post(self, request, sellergood_id):
         sellergood = get_object_or_404(SellerGoods, id=sellergood_id)
         buyer_balance = Balance.objects.get(user=request.user)
-
         if buyer_balance.amount >= sellergood.goods.price and sellergood.quantity > 0:
             total_price = sellergood.goods.price
             buyer_balance.amount -= total_price
@@ -358,7 +335,6 @@ class BuyGood(View):
                 price=total_price
             )
 
-
             adjust_price_based_on_equilibrium(sellergood.goods, transaction_type='buy')
 
             sellergood.quantity -= 1
@@ -366,7 +342,6 @@ class BuyGood(View):
 
             if sellergood.quantity == 0:
                 sellergood.delete()
-
             return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
         else:
             return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
@@ -390,8 +365,6 @@ class SellGood(View):
                 type='sell',
                 price=total_price
             )
-
-
             adjust_price_based_on_equilibrium(sellergood.goods, transaction_type='sell')
 
             sellergood.quantity += 1
@@ -402,6 +375,8 @@ class SellGood(View):
             return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
 
         return redirect(reverse('seller_detail', kwargs={'pk': sellergood.seller.pk}))
+
+
 
 
 

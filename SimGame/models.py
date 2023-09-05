@@ -25,14 +25,8 @@ class Goods(models.Model):
     def __str__(self):
         return self.name
 
-
-
-
-
-
 class Seller(models.Model):
     name = models.CharField(max_length=64)
-
     def __str__(self):
         return self.name
 
@@ -40,7 +34,6 @@ class SellerGoods(models.Model):
     seller = models.ForeignKey(Seller, on_delete=models.CASCADE)
     goods = models.ForeignKey(Goods, on_delete=models.CASCADE)
     quantity = models.IntegerField()
-
     def __str__(self):
         return f"Seller: {self.seller}, Goods: {self.goods}, Quantity: {self.quantity}"
 

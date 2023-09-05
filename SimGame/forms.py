@@ -66,3 +66,11 @@ class CreateSellerForm(forms.ModelForm):
     class Meta:
         model = Seller
         fields = ['name']
+
+
+
+
+class ChangePriceOrCreateGoodForm(forms.Form):
+    good = forms.ModelChoiceField(queryset=Goods.objects.all(), empty_label="Select a good or create a new one", required=False)
+    new_good_name = forms.CharField(max_length=64, required=False)
+    price = forms.DecimalField(max_digits=10, decimal_places=2)
